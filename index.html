@@ -1,0 +1,651 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <title>Rock Paper Scissors</title>
+  <style>
+    body {
+      background-color: #34c4ff;
+      font-family: apple color emoji,segoe ui emoji,noto color emoji,android emoji,emojisymbols,emojione mozilla,twemoji mozilla,segoe ui symbol,sans-serif;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    h3, p, button, input, label {
+        font-family: sans-serif;
+        line-height: 1.2;
+        margin: 0.3em 0;
+        padding: 0;
+        font-size: 1em;
+    }
+
+    h3 {
+        text-align: center;
+        font-size: 1.5em;
+        margin: 0.2em 0;
+    }
+
+    button, label {
+        background: #cacaca;
+        padding: 1em 1.5em;
+        border-radius: 0.2em;
+        border: none;
+        margin: 0 0.2em;
+    }
+
+    button:active, label:active {
+        background: grey;
+    }
+
+    input:checked + label {
+        background: grey;
+    }
+
+    label {
+        padding: 0.6em 1em;
+        font-family: apple color emoji,segoe ui emoji,noto color emoji,android emoji,emojisymbols,emojione mozilla,twemoji mozilla,segoe ui symbol,sans-serif;
+    }
+
+    label span {
+        font-size: 3em;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    h1 {
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      font-family: sans-serif;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 0.6em 0.3em;
+        box-sizing: border-box;
+        font-size: 0.7em;
+        border: 1px solid #b9b9b9;
+    }
+
+    input[type="radio"] {
+        display: none;
+    }
+
+    .game {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      overflow: hidden;
+    }
+
+    .grass {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: 22%;
+      background: #629f12;
+    }
+
+    .widthLimiter {
+      position: absolute;
+      left: 50%;
+      width: 100%;
+      top: 0;
+      bottom: 0;
+      transform: translateX(-50%);
+      max-width: 40em;
+    }
+
+    .roadCutoff {
+      position: absolute;
+      top: 22%;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      overflow: hidden;
+    }
+
+    .roadContainer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      perspective: 150px;
+      transform: translateX(-20%);
+    }
+
+    .road {
+      position: absolute;
+      background-color: #333;
+      transform: translateX(-10%) rotate(-9deg) rotateX(14deg);
+      width: 80%;
+      height: 600%;
+      transform-origin: bottom center;
+      top: auto;
+      bottom: -18%;
+      left: 50%;
+    }
+
+    .tree {
+      position: absolute;
+      font-size: 10em;
+      right: -0.2em;
+      transform: translateX(-50%) translateY(-50%);
+      top: 22%;
+    }
+
+    @keyframes play {
+      from {
+        transform: rotate(-35deg);
+      }
+      to {
+        transform: rotate(0) translateY(-0.4em);
+      }
+    }
+
+    @keyframes playOpponent {
+      from {
+        transform: scaleX(-1) rotate(-125deg);
+      }
+      to {
+        transform: scaleX(-1) rotate(-60deg);
+      }
+    }
+
+    @keyframes enterScreen {
+        from {
+            transform: translateY(50%);
+        }
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes enterScreenOpponent {
+        from {
+            transform: translateX(-50%) scale(0.2) translateY(-150%);
+        }
+        to {
+            transform: translateX(-50%);
+        }
+    }
+
+    @keyframes shake {
+        0% {
+            transform: translateX(-10px);
+        }
+        33% {
+            transform: translateX(0);
+        }
+        66% {
+            transform: translateX(+10px);
+        }
+        100% {
+            transform: translateX(0);
+        }
+    }
+
+    .me {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 5em;
+      left: 0;
+      animation: enterScreen 1s;
+    }
+
+    .me .hand {
+      font-size: 18em;
+      position: absolute;
+      bottom: 0;
+      right: 0.1em;
+      transform-origin: bottom center;
+      transform: rotate(-35deg);
+    }
+
+    .me .hand.play {
+      animation: play 0.2s ease-out 6 alternate;
+    }
+
+    .opponent {
+        position: absolute;
+        top: 22%;
+        font-size: 7em;
+        left: calc(50% - 0.8em);
+        transform: translateX(-50%);
+        animation: enterScreenOpponent 1s;
+    }
+
+    .opponent .body {
+        font-size: 1.5em;
+    }
+
+    .opponent .hand {
+        transform: scaleX(-1) rotate(-125deg);
+        position: absolute;
+        left: 60%;
+        top: 40%;
+    }
+
+    .opponent .hand.play {
+      animation: playOpponent 0.2s ease-out 6 alternate;
+    }
+
+    .move {
+        position: absolute;
+        bottom: 100%;
+        transform: translateX(-50%);
+        color: orange;
+    }
+
+    .move.rock {
+        font-size: 77%;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .dialog {
+        border-radius: 0.2em;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-50%);
+        background: rgba(255,255,255,0.9);
+        width: calc(100% - 1em);
+        font-size: 1.3em;
+        padding: 0.5em;
+        box-sizing: border-box;
+        max-width: 17em;
+    }
+
+    .dialog.bottom {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      transform: none;
+      max-width: none;
+      padding-top: 0.2em;
+      font-size: 1em;
+    }
+
+    .dialog p {
+        font-size: 0.7em;
+    }
+
+    p.emoji {
+        font-family: apple color emoji,segoe ui emoji,noto color emoji,android emoji,emojisymbols,emojione mozilla,twemoji mozilla,segoe ui symbol,sans-serif;
+        font-size: 2.5em;
+        margin: 0.1em 0;
+        text-align: center;
+    }
+
+    p.score {
+        text-align: center;
+        margin-bottom: 0;
+        margin-top: 0.5em;
+    }
+
+    .buttons {
+        display: flex;
+        justify-content: center;
+    }
+
+    h3.outcome {
+        font-size: 3em;
+        animation: shake 0.2s 10;
+        margin-top: 0.35em;
+    }
+
+    .fanfare {
+        position: absolute;
+        left: 50%;
+        top: 17%;
+        font-size: 10em;
+        animation: shake 0.2s 0.1s 10;
+        transform-origin: center center;
+    }
+
+    .graphic {
+        transform: translateX(-50%) translateY(-50%);
+        background: rgba(255,255,255,0.7);
+        border-radius: 50%;
+        padding: 0.2em 0.4em;
+        font-family: font-family: apple color emoji,segoe ui emoji,noto color emoji,android emoji,emojisymbols,emojione mozilla,twemoji mozilla,segoe ui symbol,sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <h1><a href="/">Rock Paper Scissors</a></h1>
+  <div class="game">
+    <div class="grass"></div>
+    <div class="widthLimiter">
+      <div class="roadCutoff">
+        <div class="roadContainer">
+          <div class="road"></div>
+        </div>
+      </div>
+      <div class="tree">🌴</div>
+      <div class="opponent hidden">
+        <div class="body">🧍</div>
+        <ul class="hand">
+          <li class="move rock">✊</li>
+          <li class="move paper hidden">✋</li>
+          <li class="move scissors hidden">✌</li>
+        </ul>
+      </div>
+      <div class="me hidden">
+        <ul class="hand">
+          <li class="move rock">✊</li>
+          <li class="move paper hidden">✋</li>
+          <li class="move scissors hidden">✌</li>
+        </ul>
+      </div>
+      <div class="dialog create">
+        <h3>Ready to play?</h3>
+        <p class="emoji">✊✋✌</p>
+        <div class="buttons">
+          <button id="startGame">Start Game</button>
+        </div>
+      </div>
+      <div class="dialog invite hidden">
+        <h3>Game created!</h3>
+        <p class="emoji">✊✋✌</p>
+        <p>Copy the link and send to your friend</p>
+        <p>Game will start when your friend opens the link</p>
+        <input id="link" type="text" value="http://some.link.com/some-game-id-1234" disabled />
+        <div class="buttons">
+          <button id="copyLink">Copy Link</button>
+        </div>
+      </div>
+    </div>
+    <div class="dialog choose bottom hidden">
+      <h3>Choose move!</h3>
+      <div class="buttons">
+        <input id="move-rock" type="radio" name="move" value="rock" />
+        <label for="move-rock"><span>✊</span></label>
+        <input id="move-paper" type="radio" name="move" value="paper" />
+        <label for="move-paper"><span>✋</span></label>
+        <input id="move-scissors" type="radio" name="move" value="scissors" />
+        <label for="move-scissors"><span>✌</span></label>
+      </div>
+      <p class="score"></p>
+    </div>
+    <div class="dialog outcome bottom hidden">
+      <h3 class="outcome win">You win!</h3>
+      <h3 class="outcome lose">You lose!</h3>
+      <h3 class="outcome tie">It's a tie!</h3>
+    </div>
+    <div class="fanfare hidden">
+      <div class="graphic">🎉</div>
+    </div>
+  </div>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=Promise%2CEventSource"></script>
+  <script>
+    const winEmojis = ["🥳", "🎉", "🏅", "🎊", "✨"]
+    const loseEmojis = ["☹", "🥺", "😢", "😖", "💀"]
+    const tieEmojis = ["🤔", "🙃", "🥱", "😴"]
+
+    const me = document.querySelector('.me')
+    const myHand = document.querySelector('.me .hand')
+    const myRock = document.querySelector('.me .move.rock')
+    const myPaper = document.querySelector('.me .move.paper')
+    const myScissors = document.querySelector('.me .move.scissors')
+    const opponent = document.querySelector('.opponent')
+    const opponentsHand = document.querySelector('.opponent .hand')
+    const opponentsRock = document.querySelector('.opponent .move.rock')
+    const opponentsPaper = document.querySelector('.opponent .move.paper')
+    const opponentsScissors = document.querySelector('.opponent .move.scissors')
+    const buttonStartGame = document.getElementById('startGame')
+    const buttonCopyLink = document.getElementById('copyLink')
+    const inputLink = document.getElementById('link')
+    const fanfare = document.querySelector('.fanfare')
+    const outcomeWin = document.querySelector('.outcome .win')
+    const outcomeLose = document.querySelector('.outcome .lose')
+    const outcomeTie = document.querySelector('.outcome .tie')
+    const dialogOutcome = document.querySelector('.dialog.outcome')
+    const score = document.querySelector('.score')
+    const panelTitle = document.querySelector('.dialog.choose h3')
+
+    // utils
+    function show(element) {
+      element.classList.remove('hidden')
+    }
+
+    function hide(element) {
+      element.classList.add('hidden')
+    }
+
+    function getLosingMove(move) {
+      return {
+        rock: "scissors",
+        paper: "rock",
+        scissors: "paper",
+      }[move]
+    }
+
+    function wait(ms) {
+      return function () {
+        return new Promise(function (resolve) { setTimeout(resolve, ms) })
+      }
+    }
+
+    // hand animations
+    function play(move, isMyMove) {
+      return new Promise(function (resolve) {
+        const hand = isMyMove ? myHand : opponentsHand
+        const rock = isMyMove ? myRock : opponentsRock
+        const paper = isMyMove ? myPaper : opponentsPaper
+        const scissors = isMyMove ? myScissors : opponentsScissors
+
+        const chosenMove = move === 'rock'
+          ? rock
+          : move === 'paper'
+            ? paper
+            : scissors
+
+        // show rock while moving hand
+        show(rock)
+        hide(paper)
+        hide(scissors)
+
+        // animate hand
+        hand.classList.add('play')
+
+        // when hand's animation ends show the chosen move
+        function onAnimationEnd() {
+          hand.removeEventListener('animationend', onAnimationEnd)
+          hand.classList.remove('play')
+          hide(rock)
+          show(chosenMove)
+          resolve()
+        }
+        hand.addEventListener('animationend', onAnimationEnd)
+      })
+    }
+
+    function playBoth(myMove, opponentsMove) {
+      return Promise.all([play(myMove, true), play(opponentsMove, false)])
+    }
+
+    // dialogs
+    function hideDialogs() {
+      document.querySelectorAll('.dialog').forEach(hide)
+    }
+    function showDialog(name) {
+      hideDialogs()
+      show(document.querySelector(`.dialog.${name}`))
+    }
+
+    // game logic
+    let state = {
+      gameID: null,
+      playerID: null,
+      isObserver: false,
+      playerCount: null,
+      lastWinningMove: null,
+      history: [],
+    }
+    let hasMadeAtLeastOneMove = false
+    function setState(newState) {
+      if (newState.gameID !== state.gameID) {
+        window.history.pushState({}, null, newState.gameID)
+        inputLink.value = window.location.href
+      }
+
+      if (newState.playerCount !== state.playerCount) {
+        switch (newState.playerCount) {
+          case 0:
+            showDialog('create')
+            hide(me)
+            hide(opponent)
+            break
+          case 1:
+            showDialog('invite')
+            show(me)
+            hide(opponent)
+            break
+          default:
+            document.querySelector('.dialog.invite h3').innerText = `Opponent left 😢`
+
+            const checkedMove = document.querySelector('input[name="move"]:checked')
+            if (checkedMove) {
+              checkedMove.checked = false
+            }
+
+            panelTitle.innerText = 'Choose move!'
+
+            showDialog('choose')
+            show(me)
+            show(opponent)
+            break
+        }
+      }
+
+      if (newState.history.length !== state.history.length && newState.playerCount >= 2 && hasMadeAtLeastOneMove) {
+        const outcome = newState.history[newState.history.length - 1]
+        const myMove = outcome === "win" | outcome === "tie"
+          ? newState.lastWinningMove
+          : getLosingMove(newState.lastWinningMove)
+        const opponentsMove = outcome === "lose" | outcome === "tie"
+          ? newState.lastWinningMove
+          : getLosingMove(newState.lastWinningMove)
+
+        hideDialogs()
+
+        playBoth(myMove, opponentsMove)
+          .then(wait(500))
+          .then(function () {
+            const fanfareGraphics = outcome === "win" ? winEmojis : (outcome === "lose" ? loseEmojis : tieEmojis)
+            const fanfareGraphic = fanfareGraphics[Math.floor(Math.random() * fanfareGraphics.length)]
+            document.querySelector('.fanfare .graphic').innerText = fanfareGraphic
+
+            hide(outcomeWin)
+            hide(outcomeLose)
+            hide(outcomeTie)
+            const outcomeElement = outcome === "win" ? outcomeWin : (outcome === "lose" ? outcomeLose : outcomeTie)
+            show(outcomeElement)
+
+            showDialog('outcome')
+            show(fanfare)
+          })
+          .then(wait(2000))
+          .then(function () {
+            hide(fanfare)
+            hide(myPaper)
+            hide(myScissors)
+            show(myRock)
+            hide(opponentsPaper)
+            hide(opponentsScissors)
+            show(opponentsRock)
+
+            panelTitle.innerText = 'Choose move!'
+            showDialog('choose')
+            const prevMove = document.querySelector('input[name="move"]:checked')
+            if (prevMove) {
+              prevMove.checked = false
+            }
+
+            // calculate score
+            const [wins, ties, losses] = newState.history.reduce(function (acc, result) {
+              const index = result === "win" ? 0 : (result === "tie" ? 1 : 2)
+              acc[index] = acc[index] + 1
+              return acc
+            }, [0, 0, 0])
+            score.innerText = `Score: ${wins} wins, ${ties} ties, ${losses} losses`
+          })
+      }
+
+      if (newState.isObserver !== state.isObserver) {
+        console.log('observer flag changed', newState.isObserver)
+      }
+
+      state = newState
+    }
+
+    function createGame(existingGameID) {
+      const stateEvents = new EventSource(`/game?gameID=${existingGameID}`)
+      stateEvents.addEventListener("state", function (event) {
+        setState(JSON.parse(event.data))
+      })
+    }
+
+    function setMove(move, playerID) {
+      hasMadeAtLeastOneMove = true
+
+      // Don't allow to switch choice until previous choice has been saved
+      document.querySelectorAll('input[name="move"]').forEach(function (input) { input.disabled = true })
+      panelTitle.innerText = 'Saving..'
+
+      const url = `/setMove?playerID=${playerID}&move=${move}`
+      fetch(url).then(function (response) {
+        document.querySelectorAll('input[name="move"]').forEach(function (input) { input.disabled = false })
+        if (response.ok) {
+          panelTitle.innerText = 'Waiting for opponent..'
+        }
+      })
+    }
+
+    buttonStartGame.addEventListener('click', function () {
+      createGame()
+      buttonStartGame.innerText = 'Starting...'
+    })
+
+    buttonCopyLink.addEventListener('click', function () {
+      window.navigator.clipboard.writeText(inputLink.value).then(function () {
+        buttonCopyLink.innerText = 'Copied!'
+        setTimeout(function () {
+          buttonCopyLink.innerText = 'Copy Link'
+        }, 2000)
+      })
+    })
+
+    document.querySelectorAll('input[name="move"]').forEach(function (radioButton) {
+      radioButton.addEventListener('change', function (event) {
+        setMove(event.target.value, state.playerID)
+      })
+    })
+
+    // attempt to join existing game if it's in the URL
+    const existingGameIDInURL = window.location.pathname.slice(1)
+    if (existingGameIDInURL) {
+      createGame(existingGameIDInURL)
+    }
+  </script>
+</body>
+</html>
