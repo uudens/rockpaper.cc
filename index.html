@@ -397,6 +397,23 @@
   </div>
   <script src="https://polyfill.io/v3/polyfill.min.js?features=Promise%2CEventSource"></script>
   <script>
+    function createTransport() {
+      return {
+        createGame: function(onState, existingGameID) {
+          const stateEvents = new EventSource("/game" + (existingGameID ? "?gameID=" + existingGameID : ""))
+          stateEvents.addEventListener("state", function (event) {
+            onState(JSON.parse(event.data))
+          })
+        },
+        setMove: function(move, playerID) {
+          const url = "/setMove?playerID=" + playerID + "&move=" + move
+          return fetch(url)
+        },
+      }
+    }
+
+    const transport = createTransport()
+
     const winEmojis = ["🥳", "🎉", "🏅", "🎊", "✨"]
     const loseEmojis = ["☹", "🥺", "😢", "😖", "💀"]
     const tieEmojis = ["🤔", "🙃", "🥱", "😴"]
@@ -489,7 +506,7 @@
     }
     function showDialog(name) {
       hideDialogs()
-      show(document.querySelector(`.dialog.${name}`))
+      show(document.querySelector(".dialog." + name))
     }
 
     // game logic
@@ -521,7 +538,7 @@
             hide(opponent)
             break
           default:
-            document.querySelector('.dialog.invite h3').innerText = `Opponent left 😢`
+            document.querySelector('.dialog.invite h3').innerText = "Opponent left 😢"
 
             const checkedMove = document.querySelector('input[name="move"]:checked')
             if (checkedMove) {
@@ -587,7 +604,7 @@
               acc[index] = acc[index] + 1
               return acc
             }, [0, 0, 0])
-            score.innerText = `Score: ${wins} wins, ${ties} ties, ${losses} losses`
+            score.innerText = "Score: " + wins + " wins, " + ties + " ties, " + losses + " losses"
           })
       }
 
@@ -598,13 +615,6 @@
       state = newState
     }
 
-    function createGame(existingGameID) {
-      const stateEvents = new EventSource(`/game?gameID=${existingGameID}`)
-      stateEvents.addEventListener("state", function (event) {
-        setState(JSON.parse(event.data))
-      })
-    }
-
     function setMove(move, playerID) {
       hasMadeAtLeastOneMove = true
 
@@ -612,8 +622,7 @@
       document.querySelectorAll('input[name="move"]').forEach(function (input) { input.disabled = true })
       panelTitle.innerText = 'Saving..'
 
-      const url = `/setMove?playerID=${playerID}&move=${move}`
-      fetch(url).then(function (response) {
+      transport.setMove(move, playerID).then(function (response) {
         document.querySelectorAll('input[name="move"]').forEach(function (input) { input.disabled = false })
         if (response.ok) {
           panelTitle.innerText = 'Waiting for opponent..'
@@ -622,7 +631,7 @@
     }
 
     buttonStartGame.addEventListener('click', function () {
-      createGame()
+      transport.createGame(setState)
       buttonStartGame.innerText = 'Starting...'
     })
 
@@ -644,7 +653,7 @@
     // attempt to join existing game if it's in the URL
     const existingGameIDInURL = window.location.pathname.slice(1)
     if (existingGameIDInURL) {
-      createGame(existingGameIDInURL)
+      transport.createGame(setState, existingGameIDInURL)
     }
   </script>
 </body>
