@@ -624,7 +624,7 @@
 
       transport.setMove(move, playerID).then(function (response) {
         document.querySelectorAll('input[name="move"]').forEach(function (input) { input.disabled = false })
-        if (response.ok) {
+        if (!response || response.ok) {
           panelTitle.innerText = 'Waiting for opponent..'
         }
       })
@@ -636,13 +636,24 @@
     })
 
     buttonCopyLink.addEventListener('click', function () {
-      window.navigator.clipboard.writeText(inputLink.value).then(function () {
-        buttonCopyLink.innerText = 'Copied!'
-        setTimeout(function () {
-          buttonCopyLink.innerText = 'Copy Link'
-        }, 2000)
-      })
+      Promise.resolve()
+        .then(function () { window.navigator.clipboard.writeText(inputLink.value) })
+        .then(function () {
+          buttonCopyLink.innerText = 'Copied!'
+          setTimeout(function () {
+            buttonCopyLink.innerText = 'Copy Link'
+          }, 2000)
+        })
+        .catch(function (err) {
+          buttonCopyLink.innerText = 'Unable to copy automatically, please select the text and copy it yourself'
+          setTimeout(function () {
+            buttonCopyLink.innerText = 'Copy Link'
+          }, 30000)
+        })
     })
+    if (!window.navigator.clipboard) {
+      hide(buttonCopyLink)
+    }
 
     document.querySelectorAll('input[name="move"]').forEach(function (radioButton) {
       radioButton.addEventListener('change', function (event) {
