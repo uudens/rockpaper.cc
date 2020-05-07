@@ -395,24 +395,13 @@
       <div class="graphic">🎉</div>
     </div>
   </div>
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=Promise%2CEventSource"></script>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.2.0/dist/peerjs.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=Promise"></script>
+  <script src="./forge-sha256.min.js"></script>
+  <script src="./transport.webrtc.js"></script>
+  <script src="./createMoveExchange.js"></script>
   <script>
-    function createTransport() {
-      return {
-        createGame: function(onState, existingGameID) {
-          const stateEvents = new EventSource("/game" + (existingGameID ? "?gameID=" + existingGameID : ""))
-          stateEvents.addEventListener("state", function (event) {
-            onState(JSON.parse(event.data))
-          })
-        },
-        setMove: function(move, playerID) {
-          const url = "/setMove?playerID=" + playerID + "&move=" + move
-          return fetch(url)
-        },
-      }
-    }
-
-    const transport = createTransport()
+    const transport = createTransport(createMoveExchange)
 
     const winEmojis = ["🥳", "🎉", "🏅", "🎊", "✨"]
     const loseEmojis = ["☹", "🥺", "😢", "😖", "💀"]
