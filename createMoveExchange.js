@@ -75,7 +75,7 @@ function createMoveExchange(sendMessage, onMessage) {
       sendMessage({ type: 'commitment', payload: newState.Ha })
     }
 
-    // send reelation if we have our own move and opponents commitment
+    // send revelation if we have our own move and opponents commitment
     if ((newState.Hb !== currentState.Hb || newState.Ha !== currentState.Ha) && (newState.Ha && newState.Hb)) {
       sendMessage({ type: 'revelation', payload: { salt: newState.Sa, move: newState.Ma } })
     }
@@ -85,12 +85,16 @@ function createMoveExchange(sendMessage, onMessage) {
       // verify opponent's move
       hash(newState.Mb + newState.Sb)
         .then(h => {
-          if (h === newState.Hb && (newState.Mb === 'rock' || newState.Mb === 'paper' || newState.Mb === 'scissors' )) {
-            onOpponentMoved([newState.Ma, newState.Mb])
-            currentState = initialState // reset
-          } else {
-            throw new Error('Invalid move from opponent' + newState.Mb)
+          if (h !== newState.Hb) {
+            throw new Error('Revelation hash does not match commitment ' + h + ', ' + newState.Mb)
           }
+
+          if (!(newState.Mb === 'rock' || newState.Mb === 'paper' || newState.Mb === 'scissors' )) {
+            throw new Error('Invalid move from opponent ' + newState.Mb)
+          }
+
+          onOpponentMoved([newState.Ma, newState.Mb])
+          currentState = initialState // reset
         })
     }
 

@@ -398,7 +398,7 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.2.0/dist/peerjs.min.js"></script>
   <script src="https://polyfill.io/v3/polyfill.min.js?features=Promise"></script>
   <script src="./forge-sha256.min.js"></script>
-  <script src="./transport.webrtc.js"></script>
+  <script src="./transport.aws.ws.js"></script>
   <script src="./createMoveExchange.js"></script>
   <script>
     const transport = createTransport(createMoveExchange)
@@ -511,6 +511,7 @@
     function setState(newState) {
       if (newState.gameID !== state.gameID) {
         window.history.pushState({}, null, newState.gameID)
+        // window.history.pushState({}, null, `?id=` + encodeURIComponent(newState.gameID))
         inputLink.value = window.location.href
       }
 
@@ -622,6 +623,7 @@
     buttonStartGame.addEventListener('click', function () {
       transport.createGame(setState)
       buttonStartGame.innerText = 'Starting...'
+      buttonStartGame.disabled = true
     })
 
     buttonCopyLink.addEventListener('click', function () {
@@ -652,8 +654,11 @@
 
     // attempt to join existing game if it's in the URL
     const existingGameIDInURL = window.location.pathname.slice(1)
+    // const existingGameIDInURL = new URLSearchParams(window.location.search).get('id');
     if (existingGameIDInURL) {
       transport.createGame(setState, existingGameIDInURL)
+      buttonStartGame.innerText = 'Starting...'
+      buttonStartGame.disabled = true
     }
   </script>
 </body>
