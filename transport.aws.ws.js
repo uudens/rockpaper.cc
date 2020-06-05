@@ -1,5 +1,5 @@
 function createTransport(createMoveExchange) {
-  function createWSConnection(existingID) {
+  function createWSConnection(room) {
     function once(ws, handler) {
       const onMessage = (event) => {
         ws.removeEventListener('message', onMessage)
@@ -16,92 +16,17 @@ function createTransport(createMoveExchange) {
       }
       ws.onopen = () => {
         once(ws, (event) => {
-          const expectedStart = 'id:'
-          if (event.data.startsWith(expectedStart)) {
-            const id = event.data.slice(expectedStart.length)
-
-            // try to send a message to existing id to see if it really exists
-            if (existingID) {
-              once(ws, (event2) => {
-                // 200 means success, and success means that message was delivered
-                if (event2.data === '200') {
-                  resolve([ws, id, existingID])
-                } else {
-                  resolve([ws, id, id])
-                }
-              })
-              ws.send(`${existingID}:hi`)
-            } else {
-              resolve([ws, id, id])
-            }
-          } else {
+          const [room, playerCount] = parse(event.data)
+          if (!room) {
             reject(event.data)
+          } else {
+            resolve([ws, room, playerCount])
           }
         })
-        ws.send('id')
+        // introduce myself
+        ws.send(`${room}:hi`)
       }
     })
-  }
-
-  function createPlayerConnection(ws, playerID, hostID, onDisconnect) {
-    function parse(message) {
-      const i = message.indexOf(':')
-      return i === -1 ? [] : [message.slice(0, i), message.slice(i + 1)]
-    }
-
-    return new Promise(resolve => {
-      if (playerID === hostID) {
-        console.log('I am host, wait for connection from guest')
-
-        // Wait for somebody to say hi
-        const onMessage = ({ data }) => {
-          const [opponentID, message] = parse(data)
-          if (message === 'hi') {
-            ws.removeEventListener('message', onMessage)
-            resolve(opponentID)
-          }
-        }
-        ws.addEventListener('message', onMessage)
-      } else {
-        console.log('I am guest, I already know that host exists')
-        resolve(hostID)
-      }
-    })
-      .then(opponentID => {
-        const onError = ({ data }) => {
-          if (data === '404') {
-            ws.removeEventListener('message', onError)
-            onDisconnect()
-          }
-        }
-        ws.addEventListener('message', onError)
-        ws.addEventListener('close', onDisconnect)
-
-        return {
-          sendMessage: message => {
-            console.log('sendMessage', message)
-            ws.send(`${opponentID}:${JSON.stringify(message)}`)
-          },
-          onMessage: cb => {
-            const onWSMessage = ({ data }) => {
-              console.log('receive', data)
-              const [sourceID, message] = parse(data)
-              if (sourceID === opponentID && message) {
-                let parsedMessage
-                try {
-                  parsedMessage = JSON.parse(message)
-                } catch (err) {
-                  console.error(err)
-                }
-                if (parsedMessage) {
-                  cb(parsedMessage)
-                }
-              }
-            }
-            ws.addEventListener('message', onWSMessage)
-          },
-        }
-      })
   }
 
   function getOutcome(me, op) {
@@ -114,6 +39,33 @@ function createTransport(createMoveExchange) {
     if (me === 'scissors' && op === 'rock') { return ['lose', 'rock'] }
     if (me === 'scissors' && op === 'paper') { return ['win', 'scissors'] }
     if (me === 'scissors' && op === 'scissors') { return ['tie', 'scissors'] }
+  }
+
+  function generateRoomId() {
+    return `play-${Math.ceil(Math.random() * 1000)}`
+  }
+
+  function parse(message) {
+    if (message.indexOf(':') === -1) {
+      return []
+    }
+
+    const [room, playerCount, messageSource, ...messageContent] = message.split(':')
+    return [room, parseInt(playerCount, 10), messageSource, messageContent.join(':')]
+  }
+
+  function waitForOpponent(ws) {
+    return new Promise(resolve => {
+      console.log('Waiting for opponent')
+      const onMessage = ws.addEventListener('message', event => {
+        const [room, playerCount] = parse(event.data)
+        if (room && playerCount >= 2) {
+          ws.removeEventListener('message', onMessage)
+          resolve([ws, playerCount])
+        }
+      })
+      ws.addEventListener('message', onMessage)
+    })
   }
 
   let setMove = () => { throw new Error('Can not set move before opponent is connected') }
@@ -141,18 +93,46 @@ function createTransport(createMoveExchange) {
       }
 
       function connect() {
-        createWSConnection(existingGameID)
-          .then(([ws, playerID, gameID]) => {
+        createWSConnection(existingGameID || generateRoomId())
+          .then(([ws, gameID, playerCount]) => {
+
+            const onError = ({ data }) => {
+              if (data === '404') {
+                ws.removeEventListener('message', onError)
+                onDisconnect()
+              }
+            }
+            ws.addEventListener('message', onError)
+            ws.addEventListener('close', onDisconnect)
+
             setState(Object.assign({}, state, {
               gameID: gameID,
-              playerID: playerID,
-              playerCount: 1,
+              playerCount: playerCount,
             }))
-            return createPlayerConnection(ws, playerID, gameID, onDisconnect)
+
+            return playerCount < 2 ? waitForOpponent(ws) : [ws, playerCount]
           })
-          .then(connection => {
-            setState(Object.assign({}, state, { playerCount: state.playerCount + 1 }))
-            const moveExchange = createMoveExchange(connection.sendMessage, connection.onMessage)
+          .then(([ws, playerCount]) => {
+            setState(Object.assign({}, state, { playerCount: playerCount }))
+            const sendMessage = message => ws.send(`${state.gameID}:${JSON.stringify(message)}`)
+            const onMessage = cb => ws.addEventListener('message', event => {
+              const [room, playerCount, messageAuthor, messageContent] = parse(event.data)
+              if (playerCount !== state.playerCount) {
+                setState(Object.assign({}, state, { playerCount: playerCount }))
+              }
+              if (messageContent) {
+                let parsedMessage
+                try {
+                  parsedMessage = JSON.parse(messageContent)
+                } catch (err) {
+                  console.error(err)
+                }
+                if (parsedMessage) {
+                  cb(parsedMessage)
+                }
+              }
+            })
+            const moveExchange = createMoveExchange(sendMessage, onMessage)
             setMove = moveExchange.setMove
             moveExchange.onOpponentMoved(moves => {
               const outcome = getOutcome(moves[0], moves[1])
